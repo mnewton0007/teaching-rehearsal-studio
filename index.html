@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Teaching Rehearsal Studio</title>
+<style>
+:root{--ink:#172033;--muted:#5d6b82;--brand:#176d5f;--brand2:#0f4f46;--bg:#f4f7f6;--card:#fff;--line:#dbe4e2}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--ink)}
+header{background:linear-gradient(120deg,var(--brand),#1d8b77);color:#fff;padding:28px 20px}.wrap{max-width:1050px;margin:0 auto;padding:0 18px}
+h1{margin:0;font-size:1.7rem}header p{margin:.45rem 0 0;opacity:.92}
+main{padding:26px 0 60px}.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;margin-bottom:18px}
+h2{margin:0 0 12px;font-size:1.15rem}label{display:block;font-weight:600;font-size:.9rem;margin:12px 0 6px}
+select,textarea,input{width:100%;padding:11px;border:1px solid var(--line);border-radius:10px;font:inherit;background:#fbfdfc}
+textarea{min-height:90px;resize:vertical}.row{display:flex;gap:12px;flex-wrap:wrap}.row>*{flex:1;min-width:220px}
+button{border:0;border-radius:999px;padding:12px 20px;font:inherit;font-weight:650;cursor:pointer}
+.primary{background:var(--brand);color:#fff}.primary:disabled{background:#a9c4bf;cursor:not-allowed}
+.secondary{background:#e8f1ef;color:var(--brand2)}.danger{background:#fdecec;color:#a12626}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+.status{margin-top:12px;padding:11px 13px;border-radius:10px;background:#eef6f4;color:var(--brand2);font-size:.92rem;white-space:pre-wrap}
+.hidden{display:none}.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:14px}
+.metric{background:#f7faf9;border:1px solid var(--line);border-radius:12px;padding:14px}.metric b{display:block;font-size:1.35rem;color:var(--brand2)}
+.metric span{color:var(--muted);font-size:.82rem}.transcript{white-space:pre-wrap;background:#fbfdfc;border:1px solid var(--line);border-radius:12px;padding:14px;min-height:120px;max-height:320px;overflow:auto}
+.feedback{white-space:pre-wrap;line-height:1.55}.note{color:var(--muted);font-size:.86rem;margin-top:8px}
+.badge{display:inline-block;background:#e8f1ef;color:var(--brand2);padding:4px 10px;border-radius:999px;font-size:.78rem;font-weight:650}
+footer{text-align:center;color:var(--muted);font-size:.82rem;padding-bottom:30px}
+</style>
+</head>
+<body>
+<header><div class="wrap"><h1>Teaching Rehearsal Studio</h1><p>Practice explaining a science lesson, facilitating discussion, or responding to classroom scenarios. Your speech is transcribed in your browser; no audio file is saved by this app.</p></div></header>
+<main class="wrap">
+<section class="card"><h2>1. Choose your rehearsal</h2>
+<div class="row"><div><label for="scenario">Scenario</label><select id="scenario"><option value="phenomenon">Explain a phenomenon-based science lesson</option><option value="discussion">Facilitate a socioscientific issue discussion</option><option value="misconception">Respond to a student misconception</option><option value="parents">Communicate with a parent or guardian</option><option value="interview">Practice a teaching interview response</option><option value="custom">Custom scenario</option></select></div><div><label for="minutes">Target length</label><select id="minutes"><option value="2">About 2 minutes</option><option value="3" selected>About 3 minutes</option><option value="5">About 5 minutes</option></select></div></div>
+<label for="prompt">What do you want to practice?</label><textarea id="prompt"></textarea>
+<label for="rubric">Rubric or success criteria <span class="badge">optional</span></label><textarea id="rubric"></textarea></section>
+
+<section class="card"><h2>2. Rehearse aloud</h2>
+<p class="note">Use Chrome or Edge on a computer. Click Start, allow microphone access, speak naturally, then click Stop.</p>
+<div class="actions"><button id="start" class="primary">Start practice</button><button id="stop" class="secondary" disabled>Stop practice</button><button id="reset" class="danger">Clear session</button></div>
+<div id="status" class="status hidden"></div><div id="diag" class="status hidden"></div><div id="metrics" class="metrics hidden"></div>
+<h3 style="margin:18px 0 8px;font-size:1rem">Live transcript</h3><div id="transcript" class="transcript">Your spoken words will appear here.</div>
+<p class="note">If your browser does not support speech recognition, speak normally and paste your transcript below. Then click Analyze transcript.</p>
+<textarea id="manual" placeholder="Optional fallback: paste or type your rehearsal transcript here."></textarea></section>
+
+<section class="card"><h2>3. Get feedback</h2>
+<p class="note">Local delivery metrics are free. Optionally add a Gemini API key for AI coaching. The key stays in this browser tab.</p>
+<label for="apikey">Gemini API key <span class="badge">optional</span></label><input id="apikey" type="password" placeholder="Paste your free Gemini API key for AI feedback">
+<div class="actions"><button id="analyze" class="primary" disabled>Analyze transcript</button><button id="ai" class="secondary" disabled>Generate AI coaching</button><button id="download" class="secondary" disabled>Download session</button></div>
+<div id="aiStatus" class="status hidden"></div><div id="feedback" class="feedback hidden"></div></section>
+</main>
+<footer>Teaching Rehearsal Studio MVP • Transcript-only by default • No audio files are uploaded or stored by this page.</footer>
+<script>
+const $=id=>document.getElementById(id);let recognition=null,listening=false,finalText="",startTime=null,timer=null;
+const scenarioPrompts={phenomenon:"Explain a phenomenon-based science lesson clearly. State the phenomenon, connect it to a core science idea, use at least one example or piece of evidence, and invite student thinking.",discussion:"Facilitate a respectful discussion about a socioscientific issue. Present the issue fairly, invite multiple perspectives, ask a probing question, and explain how evidence can inform the discussion.",misconception:"Respond to a common student misconception. Acknowledge the student's idea respectfully, identify the underlying reasoning, provide a clear correction or investigation idea, and check for understanding.",parents:"Explain a student's progress or a classroom activity to a parent or guardian in clear, supportive, jargon-free language. Include one strength, one area for growth, and one next step.",interview:"Answer a teaching interview question using a specific example, explain your instructional reasoning, connect your response to student learning, and close with a reflective statement."};
+const fillerWords=["um","uh","er","ah","like","you know","sort of","kind of","basically","actually","literally","so yeah"];
+$("scenario").addEventListener("change",()=>{if($("scenario").value!=="custom")$("prompt").value=scenarioPrompts[$("scenario").value]});
+$("prompt").value=scenarioPrompts.phenomenon;
+function show(e,t){e.classList.remove("hidden");e.textContent=t}function hide(e){e.classList.add("hidden")}function setStatus(m){show($("status"),m)}
+function browserDiag(){const SR=window.SpeechRecognition||window.webkitSpeechRecognition;show($("diag"),`Diagnostics\nBrowser: ${navigator.userAgent}\nSpeech recognition supported: ${SR?"Yes":"No"}\nSecure connection: ${location.protocol==="https:"?"Yes":"No"}\nMicrophone API available: ${navigator.mediaDevices&&navigator.mediaDevices.getUserMedia?"Yes":"No"}`)}
+function words(t){return t.trim().split(/\s+/).filter(Boolean)}
+function countFillers(t){const l=" "+t.toLowerCase().replace(/[^\w\s]/g," ")+" ";return fillerWords.reduce((n,w)=>n+(l.split(" "+w+" ").length-1),0)}
+function metrics(t){const ws=words(t),min=Math.max((Date.now()-startTime)/60000,.01),wpm=Math.round(ws.length/min),f=countFillers(t),fr=ws.length?+(f/ws.length*100).toFixed(1):0,s=t.split(/[.!?]+/).filter(x=>x.trim().length>0),asl=s.length?Math.round(ws.length/s.length):0,u=new Set(ws.map(w=>w.toLowerCase().replace(/[^\w]/g,""))).size,v=ws.length?Math.round(u/ws.length*100):0;return{wordCount:ws.length,durationSec:Math.round((Date.now()-startTime)/1000),wpm,fillers:f,fillerRate:fr,avgSentence:asl,vocabularyVariety:v}}
+function renderMetrics(m,live=false){$("metrics").classList.remove("hidden");$("metrics").innerHTML=`<div class="metric"><b>${m.wordCount}</b><span>Words${live?" so far":""}</span></div><div class="metric"><b>${m.durationSec}s</b><span>Speaking time</span></div><div class="metric"><b>${m.wpm}</b><span>Words per minute</span></div><div class="metric"><b>${m.fillers}</b><span>Possible filler words</span></div><div class="metric"><b>${m.fillerRate}%</b><span>Filler-word rate</span></div><div class="metric"><b>${m.avgSentence}</b><span>Avg. words / sentence</span></div><div class="metric"><b>${m.vocabularyVariety}%</b><span>Unique-word variety</span></div>`}
+function updateLiveMetrics(){if(!finalText.trim())return;renderMetrics(metrics(finalText),true)}
+function localFeedback(m){let pace=m.wpm<100?"Your pace may feel slow or reflective. Use this intentionally when giving students think time, but add concrete examples to maintain momentum.":m.wpm>170?"Your pace is fast. Pause after key ideas and after questions so listeners can process the explanation.":"Your pace is generally appropriate for a classroom explanation.";let filler=m.fillerRate>4?"Your filler-word rate is high. Replace fillers with a brief silent pause; pauses sound more confident and give students time to think.":m.fillerRate>2?"Your filler-word use is moderate. Identify one recurring filler and practice replacing it with a pause.":"Your filler-word use is low, which supports clear delivery.";let structure=m.avgSentence>28?"Your sentences are long. Break complex ideas into shorter statements and use signposting such as “First,” “For example,” and “So what does this mean?”":"Your sentence length supports clarity. Continue using transitions to make the structure of your explanation visible.";return `LOCAL DELIVERY FEEDBACK\n\n• Pace: ${m.wpm} words per minute. ${pace}\n• Fillers: ${m.fillers} possible fillers (${m.fillerRate}%). ${filler}\n• Clarity: Average sentence length is ${m.avgSentence} words. ${structure}\n• Word variety: ${m.vocabularyVariety}% unique words. Aim for concrete examples, definitions, and questions that connect ideas to students’ experiences.\n\nNext practice goal: Choose one improvement—pausing after questions, reducing one filler word, or adding one evidence-based example—and focus only on that in your next rehearsal.`}
+function startListening(){browserDiag();const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){setStatus("This browser does not support built-in speech recognition. Use Chrome or Edge on a computer, or paste a transcript in the fallback box below.");return}
+if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){setStatus("This browser does not expose microphone access. Use Chrome or Edge, or paste a transcript below.");return}
+setStatus("Checking microphone access…");
+navigator.mediaDevices.getUserMedia({audio:true}).then(stream=>{stream.getTracks().forEach(t=>t.stop());beginRecognition(SR)}).catch(err=>{setStatus("Microphone permission was blocked or unavailable: "+err.name+". Allow microphone access in your browser settings, then try again. You can also paste a transcript below.")})}
+function beginRecognition(SR){finalText="";$("transcript").textContent="";hide($("metrics"));hide($("feedback"));hide($("aiStatus"));$("analyze").disabled=true;$("ai").disabled=true;$("download").disabled=true;
+recognition=new SR();recognition.continuous=true;recognition.interimResults=true;recognition.lang="en-US";
+recognition.onresult=e=>{let interim="";for(let i=e.resultIndex;i<e.results.length;i++){const t=e.results[i][0].transcript;if(e.results[i].isFinal)finalText+=t+" ";else interim+=t}$("transcript").textContent=(finalText+interim).trim()};
+recognition.onerror=e=>{setStatus("Speech-recognition error: "+e.error+". Try Chrome or Edge, check microphone permissions, or paste a transcript below.");stopListening()};
+recognition.onend=()=>{if(listening){try{recognition.start()}catch(_){}}};
+try{recognition.start();listening=true;startTime=Date.now();$("start").disabled=true;$("stop").disabled=false;setStatus("Listening… Speak naturally. Click Stop when finished.");timer=setInterval(updateLiveMetrics,1000)}catch(err){setStatus("Could not start speech recognition: "+err.message+". Try Chrome or Edge, or paste a transcript below.")}}
+function stopListening(){listening=false;clearInterval(timer);if(recognition)try{recognition.stop()}catch(_){}$("start").disabled=false;$("stop").disabled=true;
+const source=finalText.trim()||$("manual").value.trim();if(!source){setStatus("No speech or transcript was detected. Try Chrome or Edge, allow microphone access, or paste a transcript in the fallback box.");return}
+finalText=source;setStatus("Practice complete. Review your metrics and generate feedback.");$("analyze").disabled=false;$("download").disabled=false;renderMetrics(metrics(finalText))}
+$("start").addEventListener("click",startListening);$("stop").addEventListener("click",stopListening);
+$("analyze").addEventListener("click",()=>{const source=finalText.trim()||$("manual").value.trim();if(!source){setStatus("No transcript found. Practice aloud first, or paste a transcript in the fallback box.");return}finalText=source;if(!startTime)startTime=Date.now()-60000;const m=metrics(finalText);renderMetrics(m);show($("feedback"),localFeedback(m));$("ai").disabled=false;$("download").disabled=false});
+$("ai").addEventListener("click",async()=>{const key=$("apikey").value.trim();const source=finalText.trim()||$("manual").value.trim();if(!key){show($("aiStatus"),"Add a Gemini API key to generate AI coaching feedback, or use the free local analysis.");return}if(!source){show($("aiStatus"),"No transcript available.");return}const m=metrics(source);const prompt=`You are a supportive science-education teaching coach for a pre-service or early-career teacher.\n\nRehearsal scenario: ${$("scenario").value}\nTarget length: ${$("minutes").value} minutes\nTeacher's goal: ${$("prompt").value}\nInstructor rubric / success criteria: ${$("rubric").value||"Not provided"}\n\nObjective delivery metrics:\n- Duration: ${m.durationSec} seconds\n- Words: ${m.wordCount}\n- Words per minute: ${m.wpm}\n- Possible filler words: ${m.fillers} (${m.fillerRate}%)\n- Average sentence length: ${m.avgSentence} words\n- Unique-word variety: ${m.vocabularyVariety}%\n\nTranscript:\n"""\n${source}\n"""\n\nWrite concise, constructive feedback using these headings:\n1. Strengths\n2. Clarity and science content\n3. Delivery and audience awareness\n4. One priority improvement\n5. Reflection prompt\n\nBe specific, quote brief evidence from the transcript, avoid inflating praise, and do not claim to measure confidence or effectiveness directly.`;show($("aiStatus"),"Generating AI coaching feedback…");try{const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(key)}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})});const d=await r.json();const out=d?.candidates?.[0]?.content?.parts?.map(p=>p.text).join("")||null;if(!out)throw new Error(d?.error?.message||"No feedback returned.");show($("aiStatus"),"AI coaching complete.");show($("feedback"),out)}catch(e){show($("aiStatus"),"AI feedback failed: "+e.message)}});
+$("download").addEventListener("click",()=>{const source=finalText.trim()||$("manual").value.trim();if(!source)return;const m=metrics(source);const report=`TEACHING REHEARSAL SESSION\n\nScenario: ${$("scenario").value}\nGoal: ${$("prompt").value}\nRubric: ${$("rubric").value||"Not provided"}\n\nMETRICS\nDuration: ${m.durationSec} seconds\nWords: ${m.wordCount}\nWords per minute: ${m.wpm}\nFiller words: ${m.fillers} (${m.fillerRate}%)\nAverage sentence length: ${m.avgSentence}\nUnique-word variety: ${m.vocabularyVariety}%\n\nTRANSCRIPT\n${source}\n\nFEEDBACK\n${$("feedback").classList.contains("hidden")?"Not generated":$("feedback").textContent}\n`;const b=new Blob([report],{type:"text/plain"});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="teaching-rehearsal-session.txt";a.click();URL.revokeObjectURL(a.href)});
+$("reset").addEventListener("click",()=>{stopListening();finalText="";$("manual").value="";$("transcript").textContent="Your spoken words will appear here.";hide($("metrics"));hide($("feedback"));hide($("aiStatus"));hide($("status"));hide($("diag"));$("analyze").disabled=true;$("ai").disabled=true;$("download").disabled=true});
+</script>
+</body>
+</html>
